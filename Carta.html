@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffefd5 0%, #fcd5e8 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        .scene {
+            perspective: 1000px;
+            width: 300px;
+            height: 200px;
+            position: relative;
+        }
+        
+        .envelope {
+            width: 300px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: all 1s ease;
+            cursor: pointer;
+            transform-origin: bottom;
+        }
+        
+        .envelope.open {
+            transform: rotateX(180deg) translateY(-100px);
+        }
+        
+        .envelope-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #5676f5; /* Color del sobre cambiado a #5676f5 */
+            border-radius: 5px;
+            backface-visibility: hidden;
+            z-index: 2;
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .envelope-front:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-top: 100px solid #4a68e0; /* Tono más oscuro para la solapa del sobre */
+            transform-origin: top;
+            transform: rotateX(0deg);
+            transition: all 1s ease;
+            z-index: 3;
+        }
+        
+        .envelope.open .envelope-front:before {
+            transform: rotateX(180deg);
+        }
+        
+        .envelope-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #5676f5; /* Color del sobre cambiado a #5676f5 */
+            transform: rotateX(180deg);
+            backface-visibility: hidden;
+            z-index: 1;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .carta {
+            position: absolute;
+            width: 280px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.9); /* Color de la carta blanco */
+            margin: 10px;
+            padding: 20px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: all 1s ease;
+            transform: translateY(0);
+            opacity: 0;
+        }
+        
+        .envelope.open ~ .carta {
+            transform: translateY(-100px);
+            opacity: 1;
+        }
+        
+        .mensaje {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #ff0000; /* Color del texto rojo */
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .corazon {
+            position: absolute;
+            font-size: 30px;
+            color: #ff0000; /* Color del corazón rojo */
+            opacity: 0.7;
+            animation: flotar 3s ease-in-out infinite;
+        }
+        
+        .estrellita {
+            position: absolute;
+            font-size: 15px;
+            color: #f556d8;
+            opacity: 0.8;
+            animation: brillar 2s ease-in-out infinite;
+        }
+        
+        @keyframes flotar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes brillar {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .decoracion {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="decoracion">
+        <div class="corazon" style="top: 20%; left: 20%;">❤</div>
+        <div class="corazon" style="top: 70%; left: 80%;">❤</div>
+        <div class="corazon" style="top: 30%; left: 75%;">❤</div>
+        <div class="corazon" style="top: 85%; left: 15%;">❤</div>
+        <div class="estrellita" style="top: 10%; left: 10%;">★</div>
+        <div class="estrellita" style="top: 90%; left: 90%;">★</div>
+        <div class="estrellita" style="top: 15%; left: 85%;">★</div>
+        <div class="estrellita" style="top: 80%; left: 20%;">★</div>
+    </div>
+    
+    <div class="scene">
+        <div class="envelope">
+            <div class="envelope-front"></div>
+            <div class="envelope-back"></div>
+        </div>
+        <div class="carta">
+            <p class="mensaje">¡Felicidades, has conseguido un número más para los años!<br>Espero que la pases bien y que sepas que siempre me acordaré de ti, Naohmi Alejandra!</p>
+            <img src="https://placehold.co/120x120/ff0000/white?text=❤️+Naohmi+❤️" alt="Corazón rojo con texto de feliz cumpleaños Naohmi">
+        </div>
+    </div>
+    
+    <canvas id="fuegos"></canvas>
+    
+    <script>
+        const envelope = document.querySelector('.envelope');
+        const canvas = document.getElementById('fuegos');
+        const ctx = canvas.getContext('2d');
+        
+        // Ajustar tamaño del canvas al de la ventana
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Variables para los fuegos artificiales
+        let fireworks = [];
+        let particles = [];
+        
+        // Clase para partículas individuales
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 8,
+                    y: (Math.random() - 0.5) * 8
+                };
+                this.alpha = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+                this.size = Math.random() * 3 + 1;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            update() {
+                this.velocity.y += 0.05; // gravedad
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= this.decay;
+                this.draw();
+            }
+        }
+        
+        // Clase para fuegos artificiales
+        class Firework {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height;
+                this.targetY = Math.random() * canvas.height / 2;
+                this.speed = 2;
+                this.angle = Math.atan2(this.targetY - this.y, canvas.width/2 - this.x);
+                this.velocity = {
+                    x: Math.cos(this.angle) * this.speed,
+                    y: Math.sin(this.angle) * this.speed
+                };
+                // Generar colores aleatorios para fuegos artificiales
+                this.color = `hsl(${Math.random() * 360}, 100%, 50%)`; 
+            }
+            
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            update() {
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.draw();
+                
+                // Si alcanza la altura objetivo, explota
+                if (this.y <= this.targetY) {
+                    for (let i = 0; i < 150; i++) {
+                        const particle = new Particle(this.x, this.y, this.color);
+                        particle.alpha = 0.7; // More transparent particles
+                        particles.push(particle);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+        
+        // Función para animar
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas sin fondo negro
+            
+            // Crear fuegos artificiales de forma aleatoria
+            if (Math.random() < 0.03 && fireworks.length < 8) {
+                fireworks.push(new Firework());
+            }
+            
+            // Actualizar y dibujar fuegos artificiales
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                if (fireworks[i].update()) {
+                    fireworks.splice(i, 1);
+                }
+            }
+            
+            // Actualizar y dibujar partículas
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        
+        // Evento de clic en el sobre
+        envelope.addEventListener('click', function() {
+            this.classList.toggle('open');
+            
+            // Iniciar fuegos artificiales cuando se abre el sobre
+            if (this.classList.contains('open')) {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        fireworks.push(new Firework());
+                    }, i * 300);
+                }
+                animate();
+            }
+        });
+        
+        // Ajustar canvas cuando cambia el tamaño de la ventana
+        window.addEventListener('resize', function() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
